@@ -1,0 +1,31 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque/standard.css";
+
+@theme static {
+  --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ground: #e6e3dd;
+  --color-ink: #1b1a17;
+  --color-signal: #de3b48;
+  --color-glass-1: #f4bb5c;
+  --color-glass-2: #f09257;
+  --color-glass-3: #e8705c;
+  --color-glass-4: #e67993;
+  --color-glass-5: #f3d27a;
+  --color-control: #1b1a17;
+  --color-control-text: #f3f0ea;
+
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ground text-ink font-display antialiased overflow-hidden;
+  }
+}
