@@ -1,11 +1,19 @@
 @import "tailwindcss";
+/* Saving a share link rewrites timers.json; scanning it for classes would reload the page mid-save. */
+@source not "../timers.json";
 @import "@fontsource-variable/bricolage-grotesque/standard.css";
+@import "@fontsource-variable/big-shoulders-display";
+@import "@fontsource-variable/unbounded";
+@import "@fontsource-variable/jetbrains-mono";
 
 @theme static {
   --font-display: "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
 
   --color-ground: #e6e3dd;
+  --color-surface: #f7f5f1;
   --color-ink: #1b1a17;
+  --color-muted: #69645c;
+  --color-line: #d6d1c8;
   --color-signal: #de3b48;
   --color-glass-1: #f4bb5c;
   --color-glass-2: #f09257;

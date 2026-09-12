@@ -1,59 +1,77 @@
-const FAMILY = '"Bricolage Grotesque Variable"'
+import type { FontSpec } from '../timer/fonts'
+
 const DIGIT_CHANNEL = '#ff0000'
 const ACCENT_CHANNEL = '#00ff00'
 const CAPTION_CHANNEL = '#0000ff'
 
 type Glyph = { text: string; weight: number; channel: string; cellWidth: number }
 
-export async function loadTextFonts() {
-  await Promise.all([
-    document.fonts.load(`700 100px ${FAMILY}`),
-    document.fonts.load(`300 100px ${FAMILY}`),
-    document.fonts.load(`500 20px ${FAMILY}`),
-  ])
+export type TextFrame = { headline: string; isClock: boolean; caption: string; font: FontSpec }
+
+function setFont(context: CanvasRenderingContext2D, font: FontSpec, weight: number, size: number) {
+  context.font = `${weight} ${size}px ${font.family}`
+  context.fontStretch = font.stretch
 }
 
-function setFont(context: CanvasRenderingContext2D, weight: number, size: number) {
-  context.font = `${weight} ${size}px ${FAMILY}`
-  context.fontStretch = 'condensed'
-}
-
-function widestDigit(context: CanvasRenderingContext2D, weight: number, size: number) {
-  setFont(context, weight, size)
+function widestDigit(context: CanvasRenderingContext2D, font: FontSpec, weight: number, size: number) {
+  setFont(context, font, weight, size)
   return Math.max(...'0123456789'.split('').map((digit) => context.measureText(digit).width))
 }
 
-function clockGlyphs(context: CanvasRenderingContext2D, clock: string, size: number): Glyph[] {
-  const boldWidth = widestDigit(context, 700, size)
-  const lightWidth = widestDigit(context, 300, size)
+function clockGlyphs(context: CanvasRenderingContext2D, clock: string, font: FontSpec, size: number): Glyph[] {
+  const boldWidth = widestDigit(context, font, font.clockWeight, size)
+  const lightWidth = widestDigit(context, font, font.secondsWeight, size)
   return clock.split('').map((character, index) => {
-    const weight = index >= 6 ? 300 : 700
-    if (character === ':') return { text: character, weight: 700, channel: ACCENT_CHANNEL, cellWidth: boldWidth * 0.5 }
-    return { text: character, weight, channel: DIGIT_CHANNEL, cellWidth: weight === 700 ? boldWidth : lightWidth }
+    if (character === ':') return { text: character, weight: font.clockWeight, channel: ACCENT_CHANNEL, cellWidth: boldWidth * 0.5 }
+    const isSeconds = index >= clock.length - 2
+    return {
+      text: character,
+      weight: isSeconds ? font.secondsWeight : font.clockWeight,
+      channel: DIGIT_CHANNEL,
+      cellWidth: isSeconds ? lightWidth : boldWidth,
+    }
   })
 }
 
-function drawClock(context: CanvasRenderingContext2D, clock: string, centerX: number, baselineY: number, size: number) {
-  const glyphs = clockGlyphs(context, clock, size)
-  const totalWidth = glyphs.reduce((sum, glyph) => sum + glyph.cellWidth, 0)
-  let cursorX = centerX - totalWidth / 2
-  context.textAlign = 'center'
+function measureHeadline(context: CanvasRenderingContext2D, frame: TextFrame, size: number) {
+  if (frame.isClock) return clockGlyphs(context, frame.headline, frame.font, size).reduce((sum, glyph) => sum + glyph.cellWidth, 0)
+  setFont(context, frame.font, frame.font.clockWeight, size)
+  return context.measureText(frame.headline).width
+}
+
+function drawClock(context: CanvasRenderingContext2D, frame: TextFrame, centerX: number, baselineY: number, size: number) {
+  const glyphs = clockGlyphs(context, frame.headline, frame.font, size)
+  let cursorX = centerX - glyphs.reduce((sum, glyph) => sum + glyph.cellWidth, 0) / 2
   for (const glyph of glyphs) {
-    setFont(context, glyph.weight, size)
+    setFont(context, frame.font, glyph.weight, size)
     context.fillStyle = glyph.channel
     context.fillText(glyph.text, cursorX + glyph.cellWidth / 2, baselineY)
     cursorX += glyph.cellWidth
   }
 }
 
-function drawHeadline(context: CanvasRenderingContext2D, headline: string, centerX: number, baselineY: number, size: number) {
-  setFont(context, 700, size)
-  context.textAlign = 'center'
+function drawHeadline(context: CanvasRenderingContext2D, frame: TextFrame, centerX: number, baselineY: number, size: number) {
+  setFont(context, frame.font, frame.font.clockWeight, size)
   context.fillStyle = DIGIT_CHANNEL
-  context.fillText(headline, centerX, baselineY)
+  context.fillText(frame.headline, centerX, baselineY)
 }
 
-export type TextFrame = { headline: string; isClock: boolean; caption: string }
+function fittedHeadlineSize(context: CanvasRenderingContext2D, frame: TextFrame, width: number, height: number) {
+  const preferred = Math.min(width * 0.215, height * 0.36)
+  const measured = measureHeadline(context, frame, preferred)
+  const available = width * 0.88
+  return measured > available ? preferred * (available / measured) : preferred
+}
+
+function drawCaption(context: CanvasRenderingContext2D, frame: TextFrame, centerX: number, baselineY: number, width: number, headlineSize: number) {
+  const captionSize = Math.max(16, Math.min(28, headlineSize * 0.12))
+  context.font = `${frame.font.captionWeight} ${captionSize}px ${frame.font.captionFamily}`
+  context.fontStretch = 'normal'
+  const fittedSize = Math.min(captionSize, captionSize * ((width * 0.9) / Math.max(1, context.measureText(frame.caption).width)))
+  context.font = `${frame.font.captionWeight} ${fittedSize}px ${frame.font.captionFamily}`
+  context.fillStyle = CAPTION_CHANNEL
+  context.fillText(frame.caption, centerX, baselineY + captionSize * 2.4)
+}
 
 export function paintTextLayer(canvas: HTMLCanvasElement, frame: TextFrame, pixelRatio: number) {
   const context = canvas.getContext('2d')
@@ -64,16 +82,11 @@ export function paintTextLayer(canvas: HTMLCanvasElement, frame: TextFrame, pixe
   context.fillStyle = '#000000'
   context.fillRect(0, 0, width, height)
   context.textBaseline = 'alphabetic'
+  context.textAlign = 'center'
 
-  const size = Math.min(width * 0.215, height * 0.36)
+  const size = fittedHeadlineSize(context, frame, width, height)
   const baselineY = height / 2 + size * 0.36
   const draw = frame.isClock ? drawClock : drawHeadline
-  draw(context, frame.headline, width / 2, baselineY, size)
-
-  const captionSize = Math.max(16, Math.min(28, size * 0.12))
-  setFont(context, 500, captionSize)
-  context.fontStretch = 'normal'
-  context.textAlign = 'center'
-  context.fillStyle = CAPTION_CHANNEL
-  context.fillText(frame.caption, width / 2, baselineY + captionSize * 2.4)
+  draw(context, frame, width / 2, baselineY, size)
+  drawCaption(context, frame, width / 2, baselineY, width, size)
 }

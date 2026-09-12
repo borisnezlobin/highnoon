@@ -1,5 +1,3 @@
-export const COUNTDOWN_TARGET = new Date(2026, 8, 13, 12, 0, 0)
-
 export type TimeLeft = {
   totalMs: number
   hours: number
@@ -8,8 +6,8 @@ export type TimeLeft = {
   isFinished: boolean
 }
 
-export function getTimeLeft(now: number): TimeLeft {
-  const totalMs = Math.max(0, COUNTDOWN_TARGET.getTime() - now)
+export function getTimeLeft(now: number, targetMs: number): TimeLeft {
+  const totalMs = Math.max(0, targetMs - now)
   const totalSeconds = Math.ceil(totalMs / 1000)
   return {
     totalMs,
@@ -26,12 +24,7 @@ export function formatClock({ hours, minutes, seconds }: TimeLeft) {
   return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
 }
 
-export function describeTarget() {
-  const weekday = COUNTDOWN_TARGET.toLocaleDateString('en-US', { weekday: 'long' })
-  return `until noon on ${weekday}`
-}
-
-export function describeTimeLeftForScreenReaders(timeLeft: TimeLeft) {
-  if (timeLeft.isFinished) return 'It’s noon.'
-  return `${timeLeft.hours} hours and ${timeLeft.minutes} minutes left until noon.`
+export function describeTimeLeft(timeLeft: TimeLeft, caption: string, finishedText: string) {
+  if (timeLeft.isFinished) return `${finishedText}.`
+  return `${timeLeft.hours} hours and ${timeLeft.minutes} minutes left, ${caption}.`
 }

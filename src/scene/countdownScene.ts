@@ -3,15 +3,19 @@ import { readPalette } from './palette'
 import { PointerTracker } from './pointer'
 import { Renderer } from './renderer'
 import { paintTextLayer, type TextFrame } from './textLayer'
+import type { FontSpec } from '../timer/fonts'
 import { GlassStrands } from './glassStrand'
-import { describeTarget, formatClock, getTimeLeft } from '../countdown/target'
+import { formatClock, getTimeLeft } from '../timer/timeLeft'
 
 const REDUCED_MOTION_SPEED = 0.15
 
-function textFrameFor(now: number): TextFrame {
-  const timeLeft = getTimeLeft(now)
-  if (timeLeft.isFinished) return { headline: 'It’s noon', isClock: false, caption: 'The wait is over' }
-  return { headline: formatClock(timeLeft), isClock: true, caption: describeTarget() }
+export type SceneTimer = { targetMs: number; caption: string; finishedText: string; font: FontSpec }
+
+function textFrameFor(now: number, timer: SceneTimer): TextFrame {
+  const timeLeft = getTimeLeft(now, timer.targetMs)
+  const shared = { caption: timer.caption, font: timer.font }
+  if (timeLeft.isFinished) return { ...shared, headline: timer.finishedText, isClock: false }
+  return { ...shared, headline: formatClock(timeLeft), isClock: true }
 }
 
 function ghostPath(time: number, width: number, height: number) {
@@ -43,9 +47,11 @@ export class CountdownScene {
   reducedMotion = false
 
   private canvas: HTMLCanvasElement
+  private timer: SceneTimer
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, timer: SceneTimer) {
     this.canvas = canvas
+    this.timer = timer
     this.renderer = new Renderer(canvas, readPalette())
     this.sceneTime = (Date.now() / 1000) % 10_000
   }
@@ -63,6 +69,10 @@ export class CountdownScene {
     window.removeEventListener('resize', this.resize)
     window.removeEventListener('pointermove', this.handlePointerMove)
     document.documentElement.removeEventListener('pointerleave', this.handlePointerLeave)
+  }
+
+  setTimer(timer: SceneTimer) {
+    this.timer = timer
   }
 
   private handlePointerMove = (event: PointerEvent) => this.pointer.handleMove(event, performance.now())
@@ -84,8 +94,8 @@ export class CountdownScene {
   }
 
   private refreshText(now: number) {
-    const frame = textFrameFor(now)
-    const signature = `${frame.headline}|${frame.caption}|${this.width}x${this.height}`
+    const frame = textFrameFor(now, this.timer)
+    const signature = `${frame.headline}|${frame.caption}|${frame.font.id}|${this.width}x${this.height}`
     if (signature === this.paintedText) return
     paintTextLayer(this.textCanvas, frame, this.pixelRatio)
     this.renderer.uploadText(this.textCanvas)
@@ -114,7 +124,7 @@ export class CountdownScene {
     this.sceneTime += dt * (this.reducedMotion ? REDUCED_MOTION_SPEED : 1)
 
     const now = Date.now()
-    const timeLeft = getTimeLeft(now)
+    const timeLeft = getTimeLeft(now, this.timer.targetMs)
     this.refreshText(now)
 
     this.scatter = approach(this.scatter, timeLeft.isFinished ? 1 : 0, dt, 1.5)
