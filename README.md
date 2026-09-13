@@ -1,4 +1,4 @@
-# High noon
+# Timer / Stopwatch
 
 A countdown timer that's nice to leave up on a screen. An ink blob sits behind the digits and splits apart when your cursor gets close, and strands of glass triangles drift around it.
 
