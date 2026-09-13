@@ -1,6 +1,4 @@
 @import "tailwindcss";
-/* Saving a share link rewrites timers.json; scanning it for classes would reload the page mid-save. */
-@source not "../timers.json";
 @import "@fontsource-variable/bricolage-grotesque/standard.css";
 @import "@fontsource-variable/big-shoulders-display";
 @import "@fontsource-variable/unbounded";

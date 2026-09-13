@@ -1,29 +1,37 @@
+import { ArrowSquareOutIcon, CheckIcon, CopyIcon } from '@phosphor-icons/react'
 import { useState, type FormEvent } from 'react'
 import { Button } from '../ui/Button'
 import { TextField } from '../ui/TextField'
+import { LinkTakenError, createSharedTimer } from '../timer/sharedTimers'
 import { SITE_HOST, isValidSlug, type TimerConfig } from '../timer/timerConfig'
 
-type Status = { kind: 'idle' } | { kind: 'saving' } | { kind: 'saved'; slug: string } | { kind: 'failed'; message: string }
+type Status = { kind: 'idle' } | { kind: 'saving' } | { kind: 'created'; slug: string } | { kind: 'failed' }
 
-async function saveSharedTimer(slug: string, timer: TimerConfig) {
-  const response = await fetch('/__timers', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ slug, timer }),
-  })
-  if (!response.ok) throw new Error(await response.text())
-}
+const INVALID_SLUG_MESSAGE = 'Use lowercase letters, numbers and dashes, like team-demo.'
+const TAKEN_SLUG_MESSAGE = 'Someone already has that link name. Try another one.'
 
-function StatusMessage({ status }: { status: Status }) {
-  if (status.kind === 'saved') {
-    return (
-      <>
-        Saved. <a className="font-medium underline underline-offset-2" href={`/${status.slug}`} target="_blank" rel="noreferrer">Preview it</a>, then run <code className="font-mono">npm run deploy</code> to put it online.
-      </>
-    )
+function CreatedLink({ slug }: { slug: string }) {
+  const [hasCopied, setHasCopied] = useState(false)
+  const url = `https://${SITE_HOST}/${slug}`
+  const copy = async () => {
+    await navigator.clipboard.writeText(url)
+    setHasCopied(true)
   }
-  if (status.kind === 'failed') return <>Couldn’t save that link: {status.message}</>
-  return null
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl bg-ground/60 p-3">
+      <p className="text-sm text-pretty">
+        Your link is live. It shows this countdown without any settings, and later changes here won’t affect it.
+      </p>
+      <a href={`/${slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 font-medium break-all underline underline-offset-2">
+        {SITE_HOST}/{slug}
+        <ArrowSquareOutIcon size={16} weight="bold" aria-hidden="true" className="shrink-0" />
+      </a>
+      <Button onClick={copy} className="self-start pl-3.5">
+        {hasCopied ? <CheckIcon size={16} weight="bold" aria-hidden="true" /> : <CopyIcon size={16} weight="bold" aria-hidden="true" />}
+        {hasCopied ? 'Copied' : 'Copy link'}
+      </Button>
+    </div>
+  )
 }
 
 export function ShareLinkForm({ timer }: { timer: TimerConfig }) {
@@ -34,16 +42,17 @@ export function ShareLinkForm({ timer }: { timer: TimerConfig }) {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!isValidSlug(slug)) {
-      setSlugError('Use lowercase letters, numbers and dashes, like team-demo.')
+      setSlugError(INVALID_SLUG_MESSAGE)
       return
     }
     setSlugError(undefined)
     setStatus({ kind: 'saving' })
     try {
-      await saveSharedTimer(slug, timer)
-      setStatus({ kind: 'saved', slug })
+      await createSharedTimer(slug, timer)
+      setStatus({ kind: 'created', slug })
     } catch (error) {
-      setStatus({ kind: 'failed', message: error instanceof Error ? error.message : 'unknown error' })
+      if (error instanceof LinkTakenError) setSlugError(TAKEN_SLUG_MESSAGE)
+      setStatus({ kind: error instanceof LinkTakenError ? 'idle' : 'failed' })
     }
   }
 
@@ -56,16 +65,17 @@ export function ShareLinkForm({ timer }: { timer: TimerConfig }) {
         value={slug}
         onChange={(event) => setSlug(event.target.value.toLowerCase())}
         error={slugError}
-        hint="People who open this link see the countdown without any settings."
+        hint="Anyone with the link sees the countdown, without the settings."
         autoComplete="off"
         spellCheck={false}
       />
       <Button type="submit" disabled={status.kind === 'saving'} className="self-start">
-        {status.kind === 'saving' ? 'Saving…' : 'Save link'}
+        {status.kind === 'saving' ? 'Creating link…' : 'Create link'}
       </Button>
-      <p role="status" className="text-sm text-pretty text-muted">
-        <StatusMessage status={status} />
-      </p>
+      <div role="status" className="text-sm text-pretty">
+        {status.kind === 'created' && <CreatedLink slug={status.slug} />}
+        {status.kind === 'failed' && <p className="text-signal">Couldn’t create the link. Check your connection and try again.</p>}
+      </div>
     </form>
   )
 }

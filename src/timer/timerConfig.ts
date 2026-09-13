@@ -12,8 +12,13 @@ export type TimerConfig = {
 const STORAGE_KEY = 'highnoon.timer'
 const SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/
 
+const RESERVED_SLUGS = ['assets']
+
+export const MAX_CAPTION_LENGTH = 120
+export const MAX_FINISHED_TEXT_LENGTH = 60
+
 export function isValidSlug(slug: string) {
-  return SLUG_PATTERN.test(slug)
+  return SLUG_PATTERN.test(slug) && !RESERVED_SLUGS.includes(slug)
 }
 
 export function nextNoon(now = new Date()) {

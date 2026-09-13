@@ -1,0 +1,32 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Anyone can open a shared timer or claim an unused link name.
+    // Links can't be changed or deleted from the app, so nobody can hijack someone else's link.
+    match /timers/{slug} {
+      allow get: if true;
+      allow list: if false;
+      allow create: if isValidSlug(slug) && isValidTimer(request.resource.data);
+      allow update, delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidSlug(slug) {
+      return slug.matches('^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$') && !(slug in ['assets']);
+    }
+
+    function isValidTimer(data) {
+      return data.keys().hasOnly(['target', 'caption', 'finishedText', 'font', 'createdAt'])
+        && data.keys().hasAll(['target', 'caption', 'finishedText', 'font', 'createdAt'])
+        && data.target is string && data.target.size() <= 40
+        && data.caption is string && data.caption.size() <= 120
+        && data.finishedText is string && data.finishedText.size() <= 60
+        && data.font in ['bricolage', 'bigShoulders', 'unbounded', 'jetbrains']
+        && data.createdAt == request.time;
+    }
+  }
+}

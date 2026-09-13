@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { isValidSlug, normalizeTimer, type TimerConfig } from './timerConfig'
+import { fetchSharedTimer } from './sharedTimers'
+import { isValidSlug, type TimerConfig } from './timerConfig'
 
 export type Route =
   | { kind: 'loading' }
@@ -11,12 +12,10 @@ function slugFromPath(pathname: string) {
   return decodeURIComponent(pathname.replace(/^\/+|\/+$/g, '')).toLowerCase()
 }
 
-async function fetchSharedTimer(slug: string): Promise<Route> {
+async function loadSharedRoute(slug: string): Promise<Route> {
   try {
-    const response = await fetch('/timers.json', { cache: 'no-store' })
-    const timers: Record<string, Partial<TimerConfig>> = await response.json()
-    const timer = timers[slug]
-    return timer ? { kind: 'shared', timer: normalizeTimer(timer) } : { kind: 'missing' }
+    const timer = await fetchSharedTimer(slug)
+    return timer ? { kind: 'shared', timer } : { kind: 'missing' }
   } catch {
     return { kind: 'missing' }
   }
@@ -32,7 +31,7 @@ export function useRoute(): Route {
   const [route, setRoute] = useState<Route>(() => initialRoute(slug))
 
   useEffect(() => {
-    if (slug && isValidSlug(slug)) fetchSharedTimer(slug).then(setRoute)
+    if (slug && isValidSlug(slug)) loadSharedRoute(slug).then(setRoute)
   }, [slug])
 
   return route

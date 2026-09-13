@@ -7,7 +7,7 @@ import { CalendarPicker } from './CalendarPicker'
 import { FontPicker } from './FontPicker'
 import { ShareLinkForm } from './ShareLinkForm'
 import { TimePicker } from './TimePicker'
-import { autoCaption, autoFinishedText, type TimerConfig } from '../timer/timerConfig'
+import { MAX_CAPTION_LENGTH, MAX_FINISHED_TEXT_LENGTH, autoCaption, autoFinishedText, type TimerConfig } from '../timer/timerConfig'
 
 type Props = { timer: TimerConfig; onChange: (timer: TimerConfig) => void; isVisible: boolean }
 
@@ -74,13 +74,13 @@ export function TimerSettings({ timer, onChange, isVisible }: Props) {
 
             <section className="flex flex-col gap-4">
               <h3 className="font-semibold">Text</h3>
-              <TextField label="Caption" value={timer.caption} placeholder={autoCaption(target)} onChange={(event) => update({ caption: event.target.value })} autoComplete="off" />
-              <TextField label="When it reaches zero" value={timer.finishedText} placeholder={autoFinishedText(target)} onChange={(event) => update({ finishedText: event.target.value })} autoComplete="off" />
+              <TextField label="Caption" value={timer.caption} placeholder={autoCaption(target)} onChange={(event) => update({ caption: event.target.value })} maxLength={MAX_CAPTION_LENGTH} autoComplete="off" />
+              <TextField label="When it reaches zero" value={timer.finishedText} placeholder={autoFinishedText(target)} onChange={(event) => update({ finishedText: event.target.value })} maxLength={MAX_FINISHED_TEXT_LENGTH} autoComplete="off" />
             </section>
 
             <FontPicker value={timer.font} onChange={(font) => update({ font })} />
 
-            {import.meta.env.DEV && <ShareLinkForm timer={timer} />}
+            <ShareLinkForm timer={timer} />
           </div>
         )}
       </dialog>

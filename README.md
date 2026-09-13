@@ -19,24 +19,19 @@ Press <kbd>F</kbd> or use the Fullscreen button to fill the screen. While the ti
 
 Shared timers live at `presenttimer.surge.sh/<link-name>` and show only the countdown, with no settings.
 
-1. Run `npm run dev` and set up the timer in the settings panel.
-2. Under **Share link**, type a link name such as `team-demo` and click **Save link**. This writes the timer into `timers.json`.
-3. Deploy with `npm run deploy`.
+Set up the timer in the settings panel, type a link name such as `team-demo` under **Share link**, and click **Create link**. The link works right away, with no redeploy. Links are stored in Firestore, and once a name is taken it can't be changed or reused, so nobody can overwrite someone else's countdown.
 
-The Share link section only appears while you run the dev server, because the deployed site has nowhere to write to. You can also edit `timers.json` by hand:
+### Firestore rules
 
-```json
-{
-  "team-demo": {
-    "target": "2026-10-02T22:00:00.000Z",
-    "caption": "until the demo starts",
-    "finishedText": "",
-    "font": "unbounded"
-  }
-}
+The security rules live in `firestore.rules`. They let anyone read a single timer and create a new one, and they refuse updates, deletes, listing and malformed timers. Publish them with:
+
+```sh
+npm run deploy:rules
 ```
 
-`target` is an ISO timestamp. Leave `caption` or `finishedText` empty to get the automatic wording, like "until noon tomorrow" and "It’s noon". `font` is one of `bricolage`, `bigShoulders`, `unbounded` or `jetbrains`.
+That uses the Firebase CLI, so log in first with the Google account that owns the `timer-c247f` project (`npx firebase login`). You can also paste the file into the Rules tab of Firestore in the Firebase console.
+
+To check the rules locally against the Firestore emulator (needs Java), run `npm run test:rules`.
 
 ## Deploy
 
@@ -46,4 +41,4 @@ The site deploys to [Surge](https://surge.sh). The first time, log in with `npx 
 npm run deploy
 ```
 
-This builds the site, copies `index.html` to `200.html` so Surge serves the app for every link name, and publishes `dist` to `presenttimer.surge.sh`.
+This builds the site, copies `index.html` to `200.html` so Surge serves the app for every link name, and publishes `dist` to `presenttimer.surge.sh`. You only need to redeploy when the code changes, not when someone creates a link.
