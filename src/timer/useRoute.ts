@@ -5,7 +5,7 @@ import { isValidSlug, type TimerConfig } from './timerConfig'
 export type Route =
   | { kind: 'loading' }
   | { kind: 'root' }
-  | { kind: 'shared'; timer: TimerConfig }
+  | { kind: 'shared'; slug: string; timer: TimerConfig }
   | { kind: 'missing' }
 
 function slugFromPath(pathname: string) {
@@ -15,7 +15,7 @@ function slugFromPath(pathname: string) {
 async function loadSharedRoute(slug: string): Promise<Route> {
   try {
     const timer = await fetchSharedTimer(slug)
-    return timer ? { kind: 'shared', timer } : { kind: 'missing' }
+    return timer ? { kind: 'shared', slug, timer } : { kind: 'missing' }
   } catch {
     return { kind: 'missing' }
   }

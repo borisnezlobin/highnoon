@@ -5,17 +5,30 @@ import { Renderer } from './renderer'
 import { paintTextLayer, type TextFrame } from './textLayer'
 import type { FontSpec } from '../timer/fonts'
 import { GlassStrands } from './glassStrand'
-import { formatClock, getTimeLeft } from '../timer/timeLeft'
+import { formatClock, getTimeLeft, type TimeLeft } from '../timer/timeLeft'
 
 const REDUCED_MOTION_SPEED = 0.15
 
-export type SceneTimer = { targetMs: number; caption: string; finishedText: string; font: FontSpec }
+export type SceneTimer = {
+  remainingMs: (now: number) => number
+  isPaused: boolean
+  showHours: boolean
+  caption: string
+  finishedText: string
+  font: FontSpec
+}
 
 function textFrameFor(now: number, timer: SceneTimer): TextFrame {
-  const timeLeft = getTimeLeft(now, timer.targetMs)
+  const timeLeft = getTimeLeft(timer.remainingMs(now))
   const shared = { caption: timer.caption, font: timer.font }
   if (timeLeft.isFinished) return { ...shared, headline: timer.finishedText, isClock: false }
-  return { ...shared, headline: formatClock(timeLeft), isClock: true }
+  return { ...shared, headline: formatClock(timeLeft, timer.showHours), isClock: true }
+}
+
+function pulseFor(timeLeft: TimeLeft, timer: SceneTimer, reducedMotion: boolean) {
+  if (timeLeft.isFinished || timer.isPaused || reducedMotion) return 0
+  const millisIntoSecond = (1000 - (timeLeft.totalMs % 1000)) % 1000
+  return Math.exp(-(millisIntoSecond / 1000) * 5)
 }
 
 function ghostPath(time: number, width: number, height: number) {
@@ -124,7 +137,7 @@ export class CountdownScene {
     this.sceneTime += dt * (this.reducedMotion ? REDUCED_MOTION_SPEED : 1)
 
     const now = Date.now()
-    const timeLeft = getTimeLeft(now, this.timer.targetMs)
+    const timeLeft = getTimeLeft(this.timer.remainingMs(now))
     this.refreshText(now)
 
     this.scatter = approach(this.scatter, timeLeft.isFinished ? 1 : 0, dt, 1.5)
@@ -133,8 +146,7 @@ export class CountdownScene {
     this.blob.step(dt, this.sceneTime, this.collectRepellers(frameTime, dt))
 
     const pieces = this.strand.build(this.sceneTime)
-    const millisIntoSecond = (1000 - (timeLeft.totalMs % 1000)) % 1000
-    const pulse = timeLeft.isFinished || this.reducedMotion ? 0 : Math.exp(-(millisIntoSecond / 1000) * 5)
+    const pulse = pulseFor(timeLeft, this.timer, this.reducedMotion)
 
     this.renderer.draw({ time: this.sceneTime, pulse, blob: this.blob, pieces, cssHeight: this.height, pixelRatio: this.pixelRatio })
     this.frameRequest = requestAnimationFrame(this.tick)

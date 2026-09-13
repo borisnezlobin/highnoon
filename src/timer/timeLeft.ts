@@ -6,8 +6,8 @@ export type TimeLeft = {
   isFinished: boolean
 }
 
-export function getTimeLeft(now: number, targetMs: number): TimeLeft {
-  const totalMs = Math.max(0, targetMs - now)
+export function getTimeLeft(remainingMs: number): TimeLeft {
+  const totalMs = Math.max(0, remainingMs)
   const totalSeconds = Math.ceil(totalMs / 1000)
   return {
     totalMs,
@@ -20,8 +20,9 @@ export function getTimeLeft(now: number, targetMs: number): TimeLeft {
 
 const pad = (value: number) => String(value).padStart(2, '0')
 
-export function formatClock({ hours, minutes, seconds }: TimeLeft) {
-  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`
+export function formatClock({ hours, minutes, seconds }: TimeLeft, showHours = true) {
+  const minutesAndSeconds = `${pad(minutes)}:${pad(seconds)}`
+  return showHours ? `${pad(hours)}:${minutesAndSeconds}` : minutesAndSeconds
 }
 
 export function describeTimeLeft(timeLeft: TimeLeft, caption: string, finishedText: string) {

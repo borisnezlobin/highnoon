@@ -20,9 +20,11 @@ service cloud.firestore {
     }
 
     function isValidTimer(data) {
-      return data.keys().hasOnly(['target', 'caption', 'finishedText', 'font', 'createdAt'])
-        && data.keys().hasAll(['target', 'caption', 'finishedText', 'font', 'createdAt'])
+      return data.keys().hasOnly(['mode', 'target', 'durationSeconds', 'caption', 'finishedText', 'font', 'createdAt'])
+        && data.keys().hasAll(['mode', 'target', 'durationSeconds', 'caption', 'finishedText', 'font', 'createdAt'])
+        && data.mode in ['until', 'duration']
         && data.target is string && data.target.size() <= 40
+        && data.durationSeconds is int && data.durationSeconds >= 1 && data.durationSeconds <= 86400
         && data.caption is string && data.caption.size() <= 120
         && data.finishedText is string && data.finishedText.size() <= 60
         && data.font in ['bricolage', 'bigShoulders', 'unbounded', 'jetbrains']

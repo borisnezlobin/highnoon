@@ -1,10 +1,15 @@
 import { useId } from 'react'
+import { SegmentedControl } from '../ui/SegmentedControl'
 import { INPUT_CLASS } from '../ui/TextField'
 
 type Props = { value: Date; onChange: (date: Date) => void }
 
 const HOURS = Array.from({ length: 12 }, (_, index) => index + 1)
 const MINUTES = Array.from({ length: 12 }, (_, index) => index * 5)
+const PERIODS: { value: 'AM' | 'PM'; label: string }[] = [
+  { value: 'AM', label: 'AM' },
+  { value: 'PM', label: 'PM' },
+]
 
 function withTime(date: Date, hours12: number, minutes: number, isPm: boolean) {
   const next = new Date(date)
@@ -32,19 +37,12 @@ export function TimePicker({ value, onChange }: Props) {
         <select id={`${id}-minute`} className={`${INPUT_CLASS} tabular-nums`} value={minutes} onChange={(event) => onChange(withTime(value, hours12, Number(event.target.value), isPm))}>
           {minuteOptions.map((minute) => <option key={minute} value={minute}>{String(minute).padStart(2, '0')}</option>)}
         </select>
-        <div className="flex shrink-0 rounded-full bg-ink/6 p-1" role="group" aria-label="Morning or afternoon">
-          {(['AM', 'PM'] as const).map((period) => (
-            <button
-              key={period}
-              type="button"
-              aria-pressed={(period === 'PM') === isPm}
-              onClick={() => onChange(withTime(value, hours12, minutes, period === 'PM'))}
-              className="h-9 rounded-full px-3 text-sm font-medium text-muted outline-none transition-[background-color,color] duration-150 focus-visible:ring-2 focus-visible:ring-signal aria-pressed:bg-surface aria-pressed:text-ink aria-pressed:shadow-sm"
-            >
-              {period}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Morning or afternoon"
+          options={PERIODS}
+          value={isPm ? 'PM' : 'AM'}
+          onChange={(period) => onChange(withTime(value, hours12, minutes, period === 'PM'))}
+        />
       </div>
     </fieldset>
   )

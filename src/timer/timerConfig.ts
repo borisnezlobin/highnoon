@@ -2,8 +2,12 @@ import { FONTS, type FontId } from './fonts'
 
 export const SITE_HOST = 'presenttimer.surge.sh'
 
+export type TimerMode = 'until' | 'duration'
+
 export type TimerConfig = {
+  mode: TimerMode
   target: string
+  durationSeconds: number
   caption: string
   finishedText: string
   font: FontId
@@ -16,6 +20,8 @@ const RESERVED_SLUGS = ['assets']
 
 export const MAX_CAPTION_LENGTH = 120
 export const MAX_FINISHED_TEXT_LENGTH = 60
+export const MAX_DURATION_SECONDS = 24 * 3600
+const DEFAULT_DURATION_SECONDS = 15 * 60
 
 export function isValidSlug(slug: string) {
   return SLUG_PATTERN.test(slug) && !RESERVED_SLUGS.includes(slug)
@@ -29,14 +35,20 @@ export function nextNoon(now = new Date()) {
 }
 
 export function defaultTimer(): TimerConfig {
-  return { target: nextNoon().toISOString(), caption: '', finishedText: '', font: 'bricolage' }
+  return { mode: 'until', target: nextNoon().toISOString(), durationSeconds: DEFAULT_DURATION_SECONDS, caption: '', finishedText: '', font: 'bricolage' }
 }
 
 export function normalizeTimer(value: Partial<TimerConfig>): TimerConfig {
   const fallback = defaultTimer()
   const target = Number.isNaN(Date.parse(value.target ?? '')) ? fallback.target : value.target!
   const font = FONTS.some((option) => option.id === value.font) ? value.font! : fallback.font
-  return { target, font, caption: value.caption ?? '', finishedText: value.finishedText ?? '' }
+  const mode = value.mode === 'duration' ? 'duration' : 'until'
+  return { mode, target, durationSeconds: normalizeDuration(value.durationSeconds), font, caption: value.caption ?? '', finishedText: value.finishedText ?? '' }
+}
+
+function normalizeDuration(seconds: unknown) {
+  if (typeof seconds !== 'number' || !Number.isInteger(seconds)) return DEFAULT_DURATION_SECONDS
+  return Math.min(MAX_DURATION_SECONDS, Math.max(1, seconds))
 }
 
 export function loadRootTimer(): TimerConfig {
@@ -84,16 +96,22 @@ export function autoCaption(target: Date, now = new Date()) {
   return `until ${describeClockTime(target)} ${describeDay(target, now)}`
 }
 
-export function autoFinishedText(target: Date) {
+export function autoFinishedText(timer: Pick<TimerConfig, 'mode' | 'target'>) {
+  const target = new Date(timer.target)
+  if (timer.mode === 'duration') return 'Time’s up'
   if (isAtMinute(target, 12)) return 'It’s noon'
   if (isAtMinute(target, 0)) return 'It’s midnight'
   return 'Time’s up'
 }
 
+export function autoTimerCaption(timer: Pick<TimerConfig, 'mode' | 'target'>) {
+  return timer.mode === 'duration' ? 'time left' : autoCaption(new Date(timer.target))
+}
+
 export function resolveCaption(timer: TimerConfig) {
-  return timer.caption.trim() || autoCaption(new Date(timer.target))
+  return timer.caption.trim() || autoTimerCaption(timer)
 }
 
 export function resolveFinishedText(timer: TimerConfig) {
-  return timer.finishedText.trim() || autoFinishedText(new Date(timer.target))
+  return timer.finishedText.trim() || autoFinishedText(timer)
 }

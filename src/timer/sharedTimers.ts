@@ -17,7 +17,9 @@ export async function createSharedTimer(slug: string, timer: TimerConfig) {
   if ((await getDoc(reference)).exists()) throw new LinkTakenError()
   try {
     await setDoc(reference, {
+      mode: timer.mode,
       target: timer.target,
+      durationSeconds: timer.durationSeconds,
       caption: timer.caption.trim(),
       finishedText: timer.finishedText.trim(),
       font: timer.font,

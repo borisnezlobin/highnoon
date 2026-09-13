@@ -11,7 +11,14 @@ npm install
 npm run dev
 ```
 
-Open the printed URL, move your mouse to the bottom-right corner, and click the cog to open the timer settings. There you can pick the end date on a calendar, choose the time, change the caption and the text shown at zero, and switch fonts. Your changes apply right away and stay saved in that browser.
+Open the printed URL, move your mouse to the bottom-right corner, and click the cog to open the timer settings. Your changes apply right away and stay saved in that browser.
+
+The timer counts down in one of two ways:
+
+- **Until a time** counts toward a date and time you pick on the calendar, like noon tomorrow.
+- **Time left** counts down a length you choose, like 15 minutes for a talk. It waits until you press **Start**, and you can pause, resume and reset it. Press <kbd>Space</kbd> to start or pause and <kbd>R</kbd> to reset.
+
+You can also change the caption, the text shown at zero, and the font.
 
 Press <kbd>F</kbd> or use the Fullscreen button to fill the screen. While the timer is fullscreen it asks the browser to keep the display awake, so a laptop won't dim or sleep during a presentation.
 

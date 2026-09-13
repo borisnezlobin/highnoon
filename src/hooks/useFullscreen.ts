@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-
-function isTypingTarget(target: EventTarget | null) {
-  return target instanceof HTMLElement && target.closest('input, textarea, select, dialog[open]') !== null
-}
+import { isPlainKey } from './keyboard'
 
 function wantsFullscreenShortcut(event: KeyboardEvent) {
-  return event.key.toLowerCase() === 'f' && !event.metaKey && !event.ctrlKey && !event.altKey && !isTypingTarget(event.target)
+  return event.key.toLowerCase() === 'f' && isPlainKey(event)
 }
 
 export function useFullscreen() {

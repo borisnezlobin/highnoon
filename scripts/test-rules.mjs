@@ -5,7 +5,7 @@ const app = initializeApp({ projectId: 'timer-c247f', apiKey: 'emulator' })
 const db = getFirestore(app)
 connectFirestoreEmulator(db, '127.0.0.1', 8080)
 
-const validTimer = () => ({ target: '2026-10-02T22:00:00.000Z', caption: 'until the demo', finishedText: '', font: 'unbounded', createdAt: serverTimestamp() })
+const validTimer = () => ({ mode: 'until', target: '2026-10-02T22:00:00.000Z', durationSeconds: 900, caption: 'until the demo', finishedText: '', font: 'unbounded', createdAt: serverTimestamp() })
 
 async function expectAllowed(name, action) {
   try {
@@ -41,6 +41,10 @@ const results = [
   await expectDenied('invalid link name', () => setDoc(doc(db, 'timers', 'Bad Name'), validTimer())),
   await expectDenied('reserved link name', () => setDoc(doc(db, 'timers', 'assets'), validTimer())),
   await expectDenied('unknown font', () => setDoc(doc(db, 'timers', 'bad-font'), { ...validTimer(), font: 'comic-sans' })),
+  await expectAllowed('create a time-left link', () => setDoc(doc(db, 'timers', 'talk-timer'), { ...validTimer(), mode: 'duration', durationSeconds: 600 })),
+  await expectDenied('unknown mode', () => setDoc(doc(db, 'timers', 'bad-mode'), { ...validTimer(), mode: 'stopwatch' })),
+  await expectDenied('duration over a day', () => setDoc(doc(db, 'timers', 'too-long'), { ...validTimer(), durationSeconds: 86401 })),
+  await expectDenied('fractional duration', () => setDoc(doc(db, 'timers', 'fraction'), { ...validTimer(), durationSeconds: 1.5 })),
   await expectDenied('extra field', () => setDoc(doc(db, 'timers', 'extra-field'), { ...validTimer(), admin: true })),
   await expectDenied('caption too long', () => setDoc(doc(db, 'timers', 'long-caption'), { ...validTimer(), caption: 'x'.repeat(121) })),
   await expectDenied('client-chosen timestamp', () => setDoc(doc(db, 'timers', 'fake-time'), { ...validTimer(), createdAt: new Date(0) })),

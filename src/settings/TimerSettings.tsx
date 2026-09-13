@@ -1,5 +1,5 @@
 import { GearSixIcon, XIcon } from '@phosphor-icons/react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { useNow } from '../hooks/useNow'
 import { Button } from '../ui/Button'
 import { TextField } from '../ui/TextField'
@@ -7,7 +7,9 @@ import { CalendarPicker } from './CalendarPicker'
 import { FontPicker } from './FontPicker'
 import { ShareLinkForm } from './ShareLinkForm'
 import { TimePicker } from './TimePicker'
-import { MAX_CAPTION_LENGTH, MAX_FINISHED_TEXT_LENGTH, autoCaption, autoFinishedText, type TimerConfig } from '../timer/timerConfig'
+import { MAX_CAPTION_LENGTH, MAX_FINISHED_TEXT_LENGTH, autoFinishedText, autoTimerCaption, type TimerConfig, type TimerMode } from '../timer/timerConfig'
+import { SegmentedControl } from '../ui/SegmentedControl'
+import { DurationPicker } from './DurationPicker'
 
 type Props = { timer: TimerConfig; onChange: (timer: TimerConfig) => void; isVisible: boolean }
 
@@ -23,6 +25,21 @@ function TargetSummary({ target }: { target: Date }) {
   )
 }
 
+const MODE_OPTIONS: { value: TimerMode; label: string }[] = [
+  { value: 'until', label: 'Until a time' },
+  { value: 'duration', label: 'Time left' },
+]
+
+function UntilFields({ target, onChange }: { target: Date; onChange: (date: Date) => void }) {
+  return (
+    <>
+      <CalendarPicker value={target} onChange={onChange} />
+      <TimePicker value={target} onChange={onChange} />
+      <TargetSummary target={target} />
+    </>
+  )
+}
+
 export function TimerSettings({ timer, onChange, isVisible }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const [isOpen, setIsOpen] = useState(false)
@@ -34,7 +51,19 @@ export function TimerSettings({ timer, onChange, isVisible }: Props) {
     if (isOpen && dialog && !dialog.open) dialog.showModal()
   }, [isOpen])
 
-  const close = () => dialogRef.current?.close()
+  const closedWithPointer = useRef(false)
+
+  const close = (event?: MouseEvent<HTMLElement>) => {
+    closedWithPointer.current = Boolean(event && event.detail > 0)
+    dialogRef.current?.close()
+  }
+
+  const handleClose = () => {
+    setIsOpen(false)
+    if (!closedWithPointer.current) return
+    closedWithPointer.current = false
+    requestAnimationFrame(() => (document.activeElement as HTMLElement | null)?.blur())
+  }
 
   return (
     <>
@@ -51,8 +80,8 @@ export function TimerSettings({ timer, onChange, isVisible }: Props) {
 
       <dialog
         ref={dialogRef}
-        onClose={() => setIsOpen(false)}
-        onClick={(event) => event.target === dialogRef.current && close()}
+        onClose={handleClose}
+        onClick={(event) => event.target === dialogRef.current && close(event)}
         aria-labelledby="timer-settings-title"
         className="fixed inset-auto right-4 bottom-4 m-0 max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-3xl bg-surface p-0 text-ink shadow-2xl backdrop:bg-ink/15"
       >
@@ -66,16 +95,15 @@ export function TimerSettings({ timer, onChange, isVisible }: Props) {
             </div>
 
             <section className="flex flex-col gap-4">
-              <h3 className="font-semibold">Countdown ends</h3>
-              <CalendarPicker value={target} onChange={(date) => update({ target: date.toISOString() })} />
-              <TimePicker value={target} onChange={(date) => update({ target: date.toISOString() })} />
-              <TargetSummary target={target} />
+              <h3 className="font-semibold">Count down</h3>
+              <SegmentedControl label="Count down" options={MODE_OPTIONS} value={timer.mode} onChange={(mode) => update({ mode })} />
+              {timer.mode === 'until' ? <UntilFields target={target} onChange={(date) => update({ target: date.toISOString() })} /> : <DurationPicker value={timer.durationSeconds} onChange={(durationSeconds) => update({ durationSeconds })} />}
             </section>
 
             <section className="flex flex-col gap-4">
               <h3 className="font-semibold">Text</h3>
-              <TextField label="Caption" value={timer.caption} placeholder={autoCaption(target)} onChange={(event) => update({ caption: event.target.value })} maxLength={MAX_CAPTION_LENGTH} autoComplete="off" />
-              <TextField label="When it reaches zero" value={timer.finishedText} placeholder={autoFinishedText(target)} onChange={(event) => update({ finishedText: event.target.value })} maxLength={MAX_FINISHED_TEXT_LENGTH} autoComplete="off" />
+              <TextField label="Caption" value={timer.caption} placeholder={autoTimerCaption(timer)} onChange={(event) => update({ caption: event.target.value })} maxLength={MAX_CAPTION_LENGTH} autoComplete="off" />
+              <TextField label="When it reaches zero" value={timer.finishedText} placeholder={autoFinishedText(timer)} onChange={(event) => update({ finishedText: event.target.value })} maxLength={MAX_FINISHED_TEXT_LENGTH} autoComplete="off" />
             </section>
 
             <FontPicker value={timer.font} onChange={(font) => update({ font })} />
