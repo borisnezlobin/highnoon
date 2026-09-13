@@ -24,7 +24,7 @@ Press <kbd>F</kbd> or use the Fullscreen button to fill the screen. While the ti
 
 ## Share a timer at its own link
 
-Shared timers live at `presenttimer.surge.sh/<link-name>` and show only the countdown, with no settings.
+Shared timers live at `bntimer.surge.sh/<link-name>` and show only the countdown, with no settings.
 
 Set up the timer in the settings panel, type a link name such as `team-demo` under **Share link**, and click **Create link**. The link works right away, with no redeploy. Links are stored in Firestore, and once a name is taken it can't be changed or reused, so nobody can overwrite someone else's countdown.
 
@@ -48,4 +48,4 @@ The site deploys to [Surge](https://surge.sh). The first time, log in with `npx 
 npm run deploy
 ```
 
-This builds the site, copies `index.html` to `200.html` so Surge serves the app for every link name, and publishes `dist` to `presenttimer.surge.sh`. You only need to redeploy when the code changes, not when someone creates a link.
+This builds the site, copies `index.html` to `200.html` so Surge serves the app for every link name, and publishes `dist` to `bntimer.surge.sh`. You only need to redeploy when the code changes, not when someone creates a link.

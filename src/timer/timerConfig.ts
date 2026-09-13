@@ -1,6 +1,6 @@
 import { FONTS, type FontId } from './fonts'
 
-export const SITE_HOST = 'presenttimer.surge.sh'
+export const SITE_HOST = 'bntimer.surge.sh'
 
 export type TimerMode = 'until' | 'duration'
 
